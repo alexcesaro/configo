@@ -1,6 +1,7 @@
 package configo
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -32,6 +33,22 @@ func TestXml(t *testing.T) {
 
 func TestYml(t *testing.T) {
 	testLoad(t, "yml")
+}
+
+func TestNotFound(t *testing.T) {
+	if IsNotFound(errors.New("Test error")) {
+		t.Error("IsNotFound(errors.New()) should be false")
+	}
+
+	fileNotExist = func(filename string) bool {
+		return true
+	}
+
+	var conf struct{}
+	err := Load("/fake/file.json", conf)
+	if !IsNotFound(err) {
+		t.Errorf(`IsNotFound(Load("/fake/file")) should be true, err = %v`, err)
+	}
 }
 
 func testLoad(t *testing.T, extension string) {

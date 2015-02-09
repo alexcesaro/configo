@@ -44,11 +44,10 @@ func Load(filename string, config interface{}) error {
 		// If filename does not exist, look into the executable directory
 		altFilename := filepath.Join(filepath.Dir(os.Args[0]), filename)
 		if fileNotExist(altFilename) {
-			return fmt.Errorf(
+			return &notFoundError{s: fmt.Sprintf(
 				"configo: file not found: %q or %q do not exist",
-				filename,
-				altFilename,
-			)
+				filename, altFilename,
+			)}
 		}
 
 		filename = altFilename
@@ -78,6 +77,20 @@ func Load(filename string, config interface{}) error {
 	}
 
 	return nil
+}
+
+type notFoundError struct {
+	s string
+}
+
+func (e *notFoundError) Error() string {
+	return e.s
+}
+
+// IsNotFound returns whether the error means the config file was not found.
+func IsNotFound(err error) bool {
+	_, ok := err.(*notFoundError)
+	return ok
 }
 
 var fileNotExist = func(filename string) bool {
