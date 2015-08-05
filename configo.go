@@ -27,8 +27,10 @@ Example:
 package configo
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -40,11 +42,83 @@ import (
 
 // Load loads the file pointed by filename and write the data to config.
 func Load(filename string, config interface{}) error {
+	u, err := getUnmarshaler(path.Ext(filename))
+	if err != nil {
+		return err
+	}
+
+	content, err := getFileContent(filename)
+	if err != nil {
+		return err
+	}
+
+	if err = u(content, config); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// LoadNode only loads the given node of a file and write the data to config.
+// It currently only supports YAML config files.
+func LoadNode(filename, node string, config interface{}) error {
+	ext := path.Ext(filename)
+	if path.Ext(filename) != ".yml" {
+		return errors.New("configo: LoadNode only supports YAML format")
+	}
+	u, err := getUnmarshaler(ext)
+	if err != nil {
+		return err
+	}
+
+	content, err := getFileContent(filename)
+	if err != nil {
+		return err
+	}
+	content = getYAMLNode(content, node)
+
+	if err = u(content, config); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getYAMLNode(content []byte, node string) []byte {
+	delim := []byte(node + ":")
+	i := bytes.Index(content, delim)
+	if i == -1 {
+		return nil
+	}
+	i += len(delim)
+
+	j := i
+	for {
+		k := bytes.IndexByte(content[j:], '\n')
+		if k == -1 {
+			return content[i:]
+		}
+		j += k + 1
+		if len(content[j:]) == 0 {
+			return content[i:]
+		}
+
+		switch content[j] {
+		case ' ', '\t', '\n':
+			j++
+			continue
+		default:
+			return content[i:j]
+		}
+	}
+}
+
+func getFileContent(filename string) ([]byte, error) {
 	if fileNotExist(filename) {
 		// If filename does not exist, look into the executable directory
 		altFilename := filepath.Join(filepath.Dir(os.Args[0]), filename)
 		if fileNotExist(altFilename) {
-			return &notFoundError{s: fmt.Sprintf(
+			return nil, &notFoundError{s: fmt.Sprintf(
 				"configo: file not found: %q or %q do not exist",
 				filename, altFilename,
 			)}
@@ -52,31 +126,23 @@ func Load(filename string, config interface{}) error {
 
 		filename = altFilename
 	}
-	content, err := readFile(filename)
-	if err != nil {
-		return err
-	}
+	return readFile(filename)
+}
 
-	ext := path.Ext(filename)
+type unmarshaler func([]byte, interface{}) error
 
+func getUnmarshaler(ext string) (unmarshaler, error) {
 	switch ext {
 	case ".json":
-		err = json.Unmarshal(content, config)
+		return json.Unmarshal, nil
 	case ".xml":
-		err = xml.Unmarshal(content, config)
+		return xml.Unmarshal, nil
 	case ".yml":
-		err = yml.Unmarshal(content, config)
-	case "":
-		return fmt.Errorf("configo: config file has no extension %q", filename)
+		return yml.Unmarshal, nil
 	default:
-		err = fmt.Errorf("configo: unknown extension %q, "+
-			"known extensions are json, xml and yml", ext)
+		return nil, fmt.Errorf("configo: unsupported extension %q,"+
+			"supported extensions are json, xml and yml", ext)
 	}
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 type notFoundError struct {

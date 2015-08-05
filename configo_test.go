@@ -2,6 +2,7 @@ package configo
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -33,6 +34,26 @@ func TestXml(t *testing.T) {
 
 func TestYml(t *testing.T) {
 	testLoad(t, "yml")
+}
+
+func TestYmlNode(t *testing.T) {
+	fileNotExist = func(filename string) bool {
+		return false
+	}
+	readFile = func(filename string) ([]byte, error) {
+		return []byte("node1:\n  user: not_me\n" +
+			"\nnode2:\n  " +
+			strings.Replace(testConfigFiles["yml"], "\n", "\n  ", -1)), nil
+	}
+
+	var config testConfig
+	if err := LoadNode("config.yml", "node2", &config); err != nil {
+		t.Fatal(err)
+	}
+
+	if config != expectedConfig {
+		t.Errorf("Invalid config, got: %#v, expected: %#v", config, expectedConfig)
+	}
 }
 
 func TestNotFound(t *testing.T) {
