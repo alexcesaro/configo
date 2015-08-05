@@ -1,29 +1,5 @@
-/*
-Package configo provides an easy way to read configuration files in JSON, XML or
-YAML.
-
-Example:
-
-	package main
-
-	import (
-		"fmt"
-
-		"github.com/alexcesaro/configo"
-	)
-
-	func main() {
-		var conf struct {
-			User     string // Field names must start with an uppercase letter
-			Password string
-		}
-		err := configo.Load("config.json", &conf)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(conf.User, conf.Password)
-	}
-*/
+// Package configo provides an easy way to read configuration files in JSON, XML
+// or YAML.
 package configo
 
 import (
@@ -59,7 +35,7 @@ func Load(filename string, config interface{}) error {
 	return nil
 }
 
-// LoadNode only loads the given node of a file and write the data to config.
+// LoadNode loads the given node of a file and write the data to config.
 // It currently only supports YAML config files.
 func LoadNode(filename, node string, config interface{}) error {
 	ext := path.Ext(filename)
