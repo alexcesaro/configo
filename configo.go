@@ -67,6 +67,7 @@ func getYAMLNode(content []byte, node string) []byte {
 		return nil
 	}
 	i += len(delim)
+	i += bytes.IndexByte(content[i:], '\n') + 1
 
 	j := i
 	for {
@@ -81,10 +82,9 @@ func getYAMLNode(content []byte, node string) []byte {
 
 		switch content[j] {
 		case ' ', '\t', '\n':
-			j++
 			continue
 		default:
-			return content[i:j]
+			return content[i : j-2]
 		}
 	}
 }

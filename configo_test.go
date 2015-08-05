@@ -43,7 +43,8 @@ func TestYmlNode(t *testing.T) {
 	readFile = func(filename string) ([]byte, error) {
 		return []byte("node1:\n  user: not_me\n" +
 			"\nnode2:\n  " +
-			strings.Replace(testConfigFiles["yml"], "\n", "\n  ", -1)), nil
+			strings.Replace(testConfigFiles["yml"], "\n", "\n  ", -1) +
+			"\n\nnode3:\n  user: not_me\n"), nil
 	}
 
 	var config testConfig
